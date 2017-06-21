@@ -7,7 +7,7 @@ import signal
 import subprocess
 import time
 
-from cert import FakeCertManager
+from cert import FakeCertManager, LetsEncryptCertManager
 
 
 class Runner:
@@ -83,7 +83,7 @@ def create_cert_manager(args):
     if args.mode == 'fake':
         return FakeCertManager(args.domain, args.renew_before_expiry, args.fake_cert_lifetime)
     elif args.mode == 'stage':
-        raise NotImplementedError
+        return LetsEncryptCertManager(args.domain, args.renew_before_expiry, args.email)
     elif args.mode == 'prod':
         raise NotImplementedError
     else:
@@ -93,16 +93,24 @@ def create_cert_manager(args):
 def parse_args():
     parser = argparse.ArgumentParser(description='HAProxy wrapper for managing certificates')
 
-    parser.add_argument('--mode', choices=['fake', 'stage', 'prod'], required=True)
+    parser.add_argument('--mode', choices=['fake', 'stage', 'prod'], required=True,
+                        help='"fake" generates a self-signed certificate. '
+                             '"stage" uses the letsencrypt staging server. '
+                             '"prod" uses the regular letsencrypt server. '
+                             'Use this only after verifying your setup in stage mode.')
     parser.add_argument('--cert-check-interval', metavar='INTERVAL', default=24 * 3600, type=int,
                         help='Perform certificate check every INTERVAL seconds.')
     parser.add_argument('--renew-before-expiry', metavar='INTERVAL', default=2 * 24 * 3600, type=int,
                         help='Renew certificate INTERVAL seconds before expiry')
     parser.add_argument('--fake-cert-lifetime', metavar='DAYS', default=90, type=int,
-                        help='Lifetime for fake certificates. Ignored for modes other than fake')
+                        help='Lifetime for fake certificates. Ignored for stage/prod mode.')
+    parser.add_argument('--email', help='Email address to register for letsencrypt. Ignored for fake mode.')
     parser.add_argument('domain', nargs='+')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.mode in {'stage', 'prod'} and not args.email:
+        parser.error('--email is required for mode {}'.format(args.mode))
+    return args
 
 
 main()

@@ -35,10 +35,25 @@ class CertManager:
     def merge_key_and_certificate(self, domain):
         logging.info('Merging key and certificate for domain {}'.format(domain))
         create_dir(os.path.join(self.TARGET_CERT_FOLDER, domain))
+        input_files = self._get_input_files(domain)
         with open(self.target_cert(domain), 'w') as out:
-            for item in ['privkey.pem', 'cert.pem']:
-                with open(os.path.join(self.SRC_CERT_ROOT, domain, item), 'r') as cert:
+            for path in input_files:
+                with open(path, 'r') as cert:
                     out.write(cert.read())
+
+    def _get_input_files(self, domain):
+        input_files = [os.path.join(self.SRC_CERT_ROOT, domain, item) for item in ['privkey.pem', 'fullchain.pem']]
+
+        error = False
+        for path in input_files:
+            if not os.path.exists(path):
+                logging.error('Required certificate file {} does not exist'.format(path))
+                error = True
+
+        if error:
+            raise ValueError('Cannot merge keys due to missing input files')
+
+        return input_files
 
 
     def should_certificate_be_renewed(self, domain):
@@ -83,14 +98,46 @@ class FakeCertManager(CertManager):
         dst_dir = os.path.join(self.SRC_CERT_ROOT, domain)
         create_dir(dst_dir)
 
-        subprocess.call([
+        subprocess.check_call([
             'openssl', 'req', '-new', '-nodes', '-x509',
             '-subj', '/CN={}'.format(domain),
             '-days', '{}'.format(self.cert_lifetime_days),
             '-keyout', os.path.join(dst_dir, 'privkey.pem'),
-            '-out', os.path.join(dst_dir, 'cert.pem'),
+            '-out', os.path.join(dst_dir, 'fullchain.pem'),
             '-extensions', 'v3_ca',
         ])
+
+
+class LetsEncryptCertManager(CertManager):
+
+    SRC_CERT_ROOT = '/etc/letsencrypt/live'
+    RENEW_PORT = 8443
+
+    def __init__(self, domains, renew_seconds_before_expiry, email, stage_cert=True):
+        super().__init__(domains, renew_seconds_before_expiry)
+        self.stage_cert = stage_cert
+        self.email = email
+
+    def generate_certificate(self, domain):
+        logging.info('Generating {} certificate via letsencrypt'.format('stage' if self.stage_cert else 'prod'))
+
+        subprocess.call([
+            'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
+            '--test-cert',
+            '--domain', domain, '--email', self.email,
+        ])
+        self.merge_key_and_certificate(domain)
+
+    def renew_certificate(self, domain):
+        logging.info('Renewing {} certificate via letsencrypt'.format('stage' if self.stage_cert else 'prod'))
+
+        subprocess.check_call([
+            'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
+            '--test-cert',
+            '--tls-sni-01', self.RENEW_PORT,
+            '--domain', domain, '--email', email,
+        ])
+        self.merge_key_and_certificate(domain)
 
 
 def create_dir(path):
