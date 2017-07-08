@@ -40,7 +40,7 @@ class Runner:
                 if not self.running:
                     break
                 if self.haproxy.poll() is not None:
-                    logging.error('haproxy has terminated with error code {}, terminating'.format(haproxy.returncode))
+                    logging.error('haproxy has terminated with error code {}, terminating'.format(self.haproxy.returncode))
                     self.running = False
                     break
                 time.sleep(1)
