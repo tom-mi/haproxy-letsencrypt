@@ -140,7 +140,7 @@ class LetsEncryptCertManager(CertManager):
         command = [
             'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
             '--test-cert',
-            '--tls-sni-01', self.RENEW_PORT,
+            '--tls-sni-01', str(self.RENEW_PORT),
             '--domain', domain, '--email', self.email,
         ]
         if self.force_renewal:
