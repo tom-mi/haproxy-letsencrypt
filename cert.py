@@ -128,7 +128,7 @@ class LetsEncryptCertManager(CertManager):
             '--domain', domain, '--email', self.email,
         ]
         if self.force_renewal:
-            command += ['--force_renewal']
+            command += ['--force-renewal']
 
         logging.info('Command: {}'.format(command))
         subprocess.call(command)
@@ -144,7 +144,7 @@ class LetsEncryptCertManager(CertManager):
             '--domain', domain, '--email', self.email,
         ]
         if self.force_renewal:
-            command += ['--force_renewal']
+            command += ['--force-renewal']
 
         logging.info('Command: {}'.format(command))
         subprocess.check_call(command)
