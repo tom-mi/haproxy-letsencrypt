@@ -83,7 +83,8 @@ def create_cert_manager(args):
     if args.mode == 'fake':
         return FakeCertManager(args.domain, args.renew_before_expiry, args.fake_cert_lifetime)
     elif args.mode == 'stage':
-        return LetsEncryptCertManager(args.domain, args.renew_before_expiry, args.email)
+        return LetsEncryptCertManager(args.domain, args.renew_before_expiry, args.email,
+                                      force_renewal=args.force_renewal)
     elif args.mode == 'prod':
         raise NotImplementedError
     else:
@@ -105,6 +106,8 @@ def parse_args():
     parser.add_argument('--fake-cert-lifetime', metavar='DAYS', default=90, type=int,
                         help='Lifetime for fake certificates. Ignored for stage/prod mode.')
     parser.add_argument('--email', help='Email address to register for letsencrypt. Ignored for fake mode.')
+    parser.add_argument('--force-renewal', action='store_true',
+                        help='Force renewal for letsencrypt. Ignored for fake mode.')
     parser.add_argument('domain', nargs='+')
 
     args = parser.parse_args()

@@ -113,30 +113,41 @@ class LetsEncryptCertManager(CertManager):
     SRC_CERT_ROOT = '/etc/letsencrypt/live'
     RENEW_PORT = 8443
 
-    def __init__(self, domains, renew_seconds_before_expiry, email, stage_cert=True):
+    def __init__(self, domains, renew_seconds_before_expiry, email, stage_cert=True, force_renewal=False):
         super().__init__(domains, renew_seconds_before_expiry)
         self.stage_cert = stage_cert
         self.email = email
+        self.force_renewal = force_renewal
 
     def generate_certificate(self, domain):
         logging.info('Generating {} certificate via letsencrypt'.format('stage' if self.stage_cert else 'prod'))
 
-        subprocess.call([
+        command = [
             'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
             '--test-cert',
             '--domain', domain, '--email', self.email,
-        ])
+        ]
+        if self.force_renewal:
+            command += ['--force_renewal']
+
+        logging.info('Command: {}'.format(command))
+        subprocess.call(command)
         self.merge_key_and_certificate(domain)
 
     def renew_certificate(self, domain):
         logging.info('Renewing {} certificate via letsencrypt'.format('stage' if self.stage_cert else 'prod'))
 
-        subprocess.check_call([
+        command = [
             'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
             '--test-cert',
             '--tls-sni-01', self.RENEW_PORT,
-            '--domain', domain, '--email', email,
-        ])
+            '--domain', domain, '--email', self.email,
+        ]
+        if self.force_renewal:
+            command += ['--force_renewal']
+
+        logging.info('Command: {}'.format(command))
+        subprocess.check_call(command)
         self.merge_key_and_certificate(domain)
 
 
