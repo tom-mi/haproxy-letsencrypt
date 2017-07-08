@@ -86,7 +86,8 @@ def create_cert_manager(args):
         return LetsEncryptCertManager(args.domain, args.renew_before_expiry, args.email,
                                       force_renewal=args.force_renewal)
     elif args.mode == 'prod':
-        raise NotImplementedError
+        return LetsEncryptCertManager(args.domain, args.renew_before_expiry, args.email,
+                                      stage_cert=False, force_renewal=args.force_renewal)
     else:
         raise ValueError('Unknown mode {}'.format(args.mode))
 

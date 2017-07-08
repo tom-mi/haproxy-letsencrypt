@@ -124,9 +124,10 @@ class LetsEncryptCertManager(CertManager):
 
         command = [
             'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
-            '--test-cert',
             '--domain', domain, '--email', self.email,
         ]
+        if self.stage_cert:
+            command += ['--test-cert']
         if self.force_renewal:
             command += ['--force-renewal']
 
@@ -139,10 +140,11 @@ class LetsEncryptCertManager(CertManager):
 
         command = [
             'certbot', 'certonly', '--standalone', '--agree-tos', '--non-interactive',
-            '--test-cert',
             '--tls-sni-01', str(self.RENEW_PORT),
             '--domain', domain, '--email', self.email,
         ]
+        if self.stage_cert:
+            command += ['--test-cert']
         if self.force_renewal:
             command += ['--force-renewal']
 
